@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group 'org.rubenpari'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    implementation("io.javalin:javalin:5.3.2")
+    implementation("org.slf4j:slf4j-simple:2.0.3")
+    implementation('io.github.cdimascio:dotenv-java:2.3.2')
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.googlecode.json-simple:json-simple:1.1.1")
+    implementation('org.kohsuke:github-api:1.313')
+}
+
+test {
+    useJUnitPlatform()
+}
