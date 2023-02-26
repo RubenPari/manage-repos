@@ -1,15 +1,22 @@
 package controllers;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.simple.JSONObject;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 
 import io.javalin.http.Context;
+import redis.clients.jedis.Jedis;
+import utils.Utils;
 
 public class RepoController {
+
+    private static final Logger log = Logger.getLogger(RepoController.class.getName());
+
     /**
      * Delete all repos from the older to n
      *
@@ -17,8 +24,11 @@ public class RepoController {
      * @throws IOException
      */
     public static void deleteLatests(@NotNull Context ctx) throws IOException {
-        // get access token from session
-        String accessToken = ctx.sessionAttribute("accessToken");
+        // get db from session
+        Jedis db = ctx.sessionAttribute("db");
+
+        // get access token from db
+        String accessToken = db.get("accessToken");
 
         // get github client
         GitHub github = new GitHubBuilder().withOAuthToken(accessToken).build();
@@ -26,28 +36,25 @@ public class RepoController {
         // get limit path param
         int limit = Integer.parseInt(ctx.pathParam("number"));
 
-        // initialize response
-        JSONObject response = new JSONObject();
-
         // delete all repos from the older to n
-        github.getMyself().listRepositories()
-                .toList().stream().skip(limit).forEach(repo -> {
-                    try {
-                        repo.delete();
-                    } catch (Exception e) {
-                        // log error
-                        System.out.println(e.getMessage());
+        GHRepository[] repos = github.getMyself().listRepositories().toArray();
 
-                        // return response with error
-                        response.put("status", "error");
-                        response.put("error", e.getMessage());
+        // order list by creation date by oldest to newest
+        GHRepository[] reposOrder = Utils.quickSort(repos);
 
-                        return;
-                    }
-                });
+        // delete the oldest n repos
+        for (int i = 0; i < limit; i++) {
+            reposOrder[i].delete();
+
+            log.info("Deleted repo: " + reposOrder[i].getName() + " with date: " + reposOrder[i].getCreatedAt());
+        }
 
         // return response
-
-        ctx.json(response);
+        ctx.json(new JSONObject() {
+            {
+                put("status", "success");
+                put("message", "Deleted " + limit + " repos");
+            }
+        });
     }
 }

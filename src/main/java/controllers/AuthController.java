@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import org.json.simple.JSONObject;
+import redis.clients.jedis.Jedis;
 
 public class AuthController {
     public static void login(@NotNull Context ctx) {
@@ -17,8 +18,8 @@ public class AuthController {
 
         String url = "https://github.com" +
                 "/login/oauth/authorize" +
-                "?scope=user:email" +
-                "?client_id=" + env.get("CLIENT_ID");
+                "?scope=user:email%20delete_repo" +
+                "&client_id=" + env.get("CLIENT_ID");
 
         // redirect to page
         ctx.redirect(url);
@@ -27,6 +28,9 @@ public class AuthController {
     public static void callback(@NotNull Context ctx) throws IOException {
         // get env from session
         Dotenv env = ctx.sessionAttribute("env");
+
+        // get db from session
+        Jedis db = ctx.sessionAttribute("db");
 
         // get code from query
         String code = ctx.queryParam("code");
@@ -41,17 +45,33 @@ public class AuthController {
         // make POST request
         OkHttpClient client = new OkHttpClient();
         RequestBody body = RequestBody.create(null, new byte[0]);
-        Request request = new Request.Builder()
+        Request requestOAuth = new Request.Builder()
                 .url(url)
                 .post(body)
                 .build();
-        Response response = client.newCall(request).execute();
+        Response responseOAuth = client.newCall(requestOAuth).execute();
 
         // get access token from response
-        String accessToken = response.body().string().split("&")[0].split("=")[1];
+        String accessToken = responseOAuth.body().string().split("&")[0].split("=")[1];
 
-        // save access token in session
-        ctx.sessionAttribute("accessToken", accessToken);
+        // try access token for check if it's valid
+        Request requestUserInfo = new Request.Builder().get()
+                .url("https://api.github.com/user")
+                .header("Accept", "application/vnd.github+json")
+                .header("Authorization", "Bearer " + accessToken)
+                .build();
+        Response responseUserInfo = client.newCall(requestUserInfo).execute();
+
+        if (responseUserInfo.code() != 200) {
+            JSONObject message = new JSONObject();
+            message.put("status", "error");
+            message.put("message", "Invalid access token");
+
+            ctx.json(message);
+        }
+
+        // save access token in redis db
+        db.set("accessToken", accessToken);
 
         // return response
         JSONObject message = new JSONObject();
