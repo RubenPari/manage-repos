@@ -80,4 +80,23 @@ public class AuthController {
 
         ctx.json(message);
     }
+
+    public static void logout(@NotNull Context ctx) throws IOException {
+        // get db from session
+        Jedis db = ctx.sessionAttribute("db");
+
+        // delete access token from db
+        db.del("accessToken");
+
+        // return response
+        JSONObject message = new JSONObject(
+            new JSONObject() {
+                {
+                    put("status", "success");
+                    put("message", "Successfully logged out");
+                }
+            });
+
+        ctx.json(message);
+    }
 }
