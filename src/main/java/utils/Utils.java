@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.kohsuke.github.GHRepository;
 
 public class Utils {
+    // ########### Quick sort ###########
     public static GHRepository[] quickSort(GHRepository[] arr) throws IOException {
         if (arr == null || arr.length == 0) {
             return arr;
@@ -36,5 +37,23 @@ public class Utils {
         arr[i + 1] = arr[right];
         arr[right] = temp;
         return i + 1;
+    }
+
+    /**
+     * Filter an array of GHRepository
+     * by a specific programming language
+     */
+    public static GHRepository[] filterByLang(GHRepository[] arr, String lang) throws IOException {
+        GHRepository[] filtered = new GHRepository[arr.length];
+
+        int j = 0;
+
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i].getLanguage().equals(lang)) {
+                filtered[j] = arr[i];
+                j++;
+            }
+        }
+        return filtered;
     }
 }

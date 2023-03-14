@@ -13,5 +13,6 @@ public class Routes {
 
         // ##### Repo routes #####
         app.delete("/repos/delete/{number}", RepoController::deleteLatests);
+        app.get("/repos/by-lang/{lang}", RepoController::getByLang);
     }
 }

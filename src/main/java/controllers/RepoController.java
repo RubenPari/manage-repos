@@ -57,4 +57,34 @@ public class RepoController {
             }
         });
     }
+
+    /**
+     * Get all repos by language
+     *
+     * @param ctx
+     * @throws IOException
+     */
+    public static void getByLang(@NotNull Context ctx) throws IOException {
+        // get db from session
+        Jedis db = ctx.sessionAttribute("db");
+
+        // get access token from db
+        String accessToken = db.get("accessToken");
+
+        // get github client
+        GitHub github = new GitHubBuilder().withOAuthToken(accessToken).build();
+
+        // get language path param
+        String lang = ctx.pathParam("lang");
+
+        // get repos by language
+        GHRepository[] repos = github.getMyself().listRepositories().toArray();
+
+        // filter repos by language
+        GHRepository[] reposFiltered = Utils.filterByLang(repos, lang);
+
+        // return response
+        ctx.json(reposFiltered);
+
+    }
 }
